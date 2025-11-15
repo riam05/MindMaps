@@ -95,9 +95,20 @@
     .node-info .type {
       font-size: 12px;
       color: #94a3b8;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+    
+    .node-info .description {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.5;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      border-left: 3px solid #60a5fa;
     }
     
     .node-info .connections {
@@ -139,6 +150,102 @@
     .stats-item strong {
       color: #60a5fa;
     }
+    
+    .topic-input-container {
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      min-width: 300px;
+      max-width: 400px;
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+    
+    .topic-input-container h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #60a5fa;
+    }
+    
+    .topic-input-container textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+    
+    .topic-input-container textarea:focus {
+      outline: none;
+      border-color: #60a5fa;
+    }
+    
+    .topic-input-container button {
+      width: 100%;
+      padding: 10px;
+      background: #60a5fa;
+      border: none;
+      border-radius: 6px;
+      color: #ffffff;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    
+    .topic-input-container button:hover {
+      background: #3b82f6;
+    }
+    
+    .topic-input-container button:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
+    
+    .generated-content {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .generated-content h4 {
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: #94a3b8;
+    }
+    
+    .generated-item {
+      margin-bottom: 8px;
+      font-size: 12px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    
+    .generated-item strong {
+      color: #60a5fa;
+    }
+    
+    .error-message {
+      color: #f87171;
+      font-size: 12px;
+      margin-top: 10px;
+      padding: 8px;
+      background: rgba(248, 113, 113, 0.1);
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -148,11 +255,19 @@
       <div class="subtitle">Interactive visualization of concepts and relationships</div>
     </header>
     <div id="graph-container">
+      <div class="topic-input-container">
+        <h3>Add Topic</h3>
+        <textarea id="topicInput" placeholder="Enter a topic or description (e.g., 'Machine Learning', 'Neural Networks', 'How does backpropagation work?')"></textarea>
+        <button id="generateBtn" onclick="generateTopic()">Generate Edges & Descriptions</button>
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+        <div id="generatedContent" class="generated-content" style="display: none;"></div>
+      </div>
       <div class="loading">Loading graph...</div>
       <div id="graph"></div>
       <div class="node-info" id="nodeInfo">
         <h3 id="nodeName"></h3>
         <div class="type" id="nodeType"></div>
+        <div class="description" id="nodeDescription" style="display: none;"></div>
         <div class="connections" id="nodeConnections"></div>
       </div>
       <div class="stats" id="stats">
@@ -214,6 +329,8 @@
         .linkLabel(link => link.relation)
         .linkColor(() => 'rgba(255, 255, 255, 0.2)')
         .linkWidth(1.5)
+        .linkDirectionalArrowLength(6)
+        .linkDirectionalArrowColor(() => 'rgba(255, 255, 255, 0.4)')
         .onNodeClick(handleNodeClick)
         .onBackgroundClick(handleBackgroundClick)
         .onNodeHover(node => {
@@ -225,6 +342,9 @@
     
     function handleNodeClick(node) {
       selectedNode = node;
+      
+      // Get full node data from graphData to ensure we have all properties (including description)
+      const fullNodeData = graphData.nodes.find(n => n.id === node.id) || node;
       
       // Find all connections for this node
       const connections = graphData.links
@@ -240,8 +360,18 @@
         });
       
       // Show info panel
-      document.getElementById('nodeName').textContent = node.name;
-      document.getElementById('nodeType').textContent = node.type || 'concept';
+      document.getElementById('nodeName').textContent = fullNodeData.name;
+      document.getElementById('nodeType').textContent = fullNodeData.type || 'concept';
+      
+      // Display description if available
+      const descriptionDiv = document.getElementById('nodeDescription');
+      if (fullNodeData.description) {
+        descriptionDiv.textContent = fullNodeData.description;
+        descriptionDiv.style.display = 'block';
+      } else {
+        descriptionDiv.style.display = 'none';
+      }
+      
       document.getElementById('nodeInfo').classList.add('visible');
       
       // Update connections list
@@ -260,6 +390,97 @@
       selectedNode = null;
       document.getElementById('nodeInfo').classList.remove('visible');
     }
+    
+    // Generate topic using Ollama
+    async function generateTopic() {
+      const input = document.getElementById('topicInput');
+      const button = document.getElementById('generateBtn');
+      const errorDiv = document.getElementById('errorMessage');
+      const contentDiv = document.getElementById('generatedContent');
+      
+      const topicText = input.value.trim();
+      
+      if (!topicText) {
+        errorDiv.textContent = 'Please enter a topic or description';
+        errorDiv.style.display = 'block';
+        contentDiv.style.display = 'none';
+        return;
+      }
+      
+      // Disable button and show loading
+      button.disabled = true;
+      button.textContent = 'Generating...';
+      errorDiv.style.display = 'none';
+      contentDiv.style.display = 'none';
+      
+      try {
+        const response = await fetch('/api/generate-topic', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            description: topicText
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to generate topic');
+        }
+        
+        // Display the generated content
+        let html = '';
+        
+        if (data.description) {
+          html += `<h4>📝 Topic Description</h4>`;
+          html += `<div class="generated-item">${data.description}</div>`;
+        }
+        
+        if (data.edges && data.edges.length > 0) {
+          html += `<h4>🔗 Generated Edges (${data.edges.length})</h4>`;
+          data.edges.forEach(edge => {
+            html += `<div class="generated-item">`;
+            html += `<strong>${edge.source}</strong> --[${edge.relation}]--> <strong>${edge.target}</strong>`;
+            if (edge.description) {
+              html += `<br><span style="color: #94a3b8; font-size: 11px;">${edge.description}</span>`;
+            }
+            html += `</div>`;
+          });
+        }
+        
+        if (data.concepts && data.concepts.length > 0) {
+          html += `<h4>💡 Related Concepts (${data.concepts.length})</h4>`;
+          data.concepts.forEach(concept => {
+            html += `<div class="generated-item">`;
+            html += `<strong>${concept.name}</strong> (${concept.type || 'concept'})`;
+            if (concept.description) {
+              html += `<br><span style="color: #94a3b8; font-size: 11px;">${concept.description}</span>`;
+            }
+            html += `</div>`;
+          });
+        }
+        
+        contentDiv.innerHTML = html;
+        contentDiv.style.display = 'block';
+        
+      } catch (error) {
+        errorDiv.textContent = error.message || 'Failed to generate topic. Make sure Ollama is running.';
+        errorDiv.style.display = 'block';
+        console.error('Error generating topic:', error);
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Generate Edges & Descriptions';
+      }
+    }
+    
+    // Allow Enter key to submit (Ctrl+Enter or Cmd+Enter)
+    document.getElementById('topicInput').addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        generateTopic();
+      }
+    });
   </script>
 </body>
 </html>

@@ -5,20 +5,26 @@ async function seedData() {
   
   try {
     await db.connect();
-    console.log('Connected to database. Seeding fake data...\n');
+    console.log('Connected to database. Clearing existing data...\n');
+    
+    // Clear all existing data
+    await db.clearAll();
+    console.log('✓ Cleared all existing nodes and edges\n');
+    
+    console.log('Seeding fake data...\n');
 
     // Create nodes (concepts)
     console.log('Creating nodes...');
-    const node1 = await db.createNode('Machine Learning', 'concept');
-    const node2 = await db.createNode('Neural Networks', 'concept');
-    const node3 = await db.createNode('Deep Learning', 'concept');
-    const node4 = await db.createNode('Backpropagation', 'algorithm');
-    const node5 = await db.createNode('Gradient Descent', 'algorithm');
-    const node6 = await db.createNode('Transformer', 'architecture');
-    const node7 = await db.createNode('Attention Mechanism', 'concept');
-    const node8 = await db.createNode('Natural Language Processing', 'field');
-    const node9 = await db.createNode('Computer Vision', 'field');
-    const node10 = await db.createNode('Convolutional Neural Network', 'architecture');
+    const node1 = await db.createNode('Machine Learning', 'concept', 'A method of data analysis that automates analytical model building, enabling systems to learn and improve from experience without being explicitly programmed.');
+    const node2 = await db.createNode('Neural Networks', 'concept', 'Computing systems inspired by biological neural networks, consisting of interconnected nodes (neurons) that process information through weighted connections.');
+    const node3 = await db.createNode('Deep Learning', 'concept', 'A subset of machine learning that uses neural networks with multiple layers to progressively extract higher-level features from raw input.');
+    const node4 = await db.createNode('Backpropagation', 'algorithm', 'A training algorithm for neural networks that calculates gradients by propagating errors backward through the network layers.');
+    const node5 = await db.createNode('Gradient Descent', 'algorithm', 'An optimization algorithm used to minimize a function by iteratively moving in the direction of steepest descent as defined by the negative gradient.');
+    const node6 = await db.createNode('Transformer', 'architecture', 'A deep learning architecture that relies entirely on self-attention mechanisms, revolutionizing natural language processing tasks.');
+    const node7 = await db.createNode('Attention Mechanism', 'concept', 'A technique that allows models to focus on relevant parts of the input when making predictions, improving performance on sequence tasks.');
+    const node8 = await db.createNode('Natural Language Processing', 'field', 'A field of artificial intelligence that focuses on the interaction between computers and human language, enabling machines to understand and generate text.');
+    const node9 = await db.createNode('Computer Vision', 'field', 'A field of artificial intelligence that trains computers to interpret and understand visual information from the world, including images and videos.');
+    const node10 = await db.createNode('Convolutional Neural Network', 'architecture', 'A type of deep neural network designed to process pixel data, particularly effective for image recognition and classification tasks.');
     
     console.log(`✓ Created ${10} nodes\n`);
 

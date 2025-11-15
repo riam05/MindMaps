@@ -24,13 +24,26 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS nodes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      type TEXT
+      type TEXT,
+      description TEXT
     )
   `, (err) => {
     if (err) {
       console.error('Error creating nodes table:', err.message);
     } else {
       console.log('✓ Nodes table created/verified');
+    }
+  });
+
+  // Add description column to existing tables (migration)
+  db.run(`
+    ALTER TABLE nodes ADD COLUMN description TEXT
+  `, (err) => {
+    // Ignore error if column already exists
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding description column:', err.message);
+    } else if (!err) {
+      console.log('✓ Added description column to nodes table');
     }
   });
 

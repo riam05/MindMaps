@@ -35,12 +35,12 @@ class Database {
   }
 
   // Node operations
-  async createNode(name, type = null) {
+  async createNode(name, type = null, description = null) {
     return new Promise((resolve, reject) => {
-      const sql = `INSERT INTO nodes (name, type) VALUES (?, ?)`;
-      this.db.run(sql, [name, type], function(err) {
+      const sql = `INSERT INTO nodes (name, type, description) VALUES (?, ?, ?)`;
+      this.db.run(sql, [name, type, description], function(err) {
         if (err) reject(err);
-        else resolve({ id: this.lastID, name, type });
+        else resolve({ id: this.lastID, name, type, description });
       });
     });
   }
@@ -131,6 +131,24 @@ class Database {
       } catch (err) {
         reject(err);
       }
+    });
+  }
+
+  // Clear all data
+  async clearAll() {
+    return new Promise((resolve, reject) => {
+      this.db.serialize(() => {
+        this.db.run('DELETE FROM edges', (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          this.db.run('DELETE FROM nodes', (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      });
     });
   }
 }
