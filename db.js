@@ -134,6 +134,26 @@ class Database {
     });
   }
 
+  // Delete a node and all its edges
+  async deleteNode(nodeId) {
+    return new Promise((resolve, reject) => {
+      this.db.serialize(() => {
+        // First delete all edges connected to this node
+        this.db.run('DELETE FROM edges WHERE src_id = ? OR dst_id = ?', [nodeId, nodeId], (err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          // Then delete the node
+          this.db.run('DELETE FROM nodes WHERE id = ?', [nodeId], (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      });
+    });
+  }
+
   // Clear all data
   async clearAll() {
     return new Promise((resolve, reject) => {

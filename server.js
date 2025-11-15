@@ -77,6 +77,29 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Delete a node
+app.delete('/api/nodes/:id', async (req, res) => {
+  try {
+    const nodeId = parseInt(req.params.id);
+    
+    if (isNaN(nodeId)) {
+      return res.status(400).json({ error: 'Invalid node ID' });
+    }
+
+    await db.connect();
+    await db.deleteNode(nodeId);
+    await db.close();
+
+    res.json({ 
+      success: true, 
+      message: `Node ${nodeId} and its edges deleted successfully` 
+    });
+  } catch (error) {
+    console.error('Error deleting node:', error);
+    res.status(500).json({ error: 'Failed to delete node', details: error.message });
+  }
+});
+
 // Generate edges and descriptions using Ollama
 app.post('/api/generate-topic', async (req, res) => {
   try {
@@ -130,7 +153,7 @@ Return ONLY a valid JSON object with this exact structure:
 }
 
 Rules:
-- Generate 3-8 relevant edges connecting the topic to related concepts
+- Generate relevant edges connecting the topic to related concepts
 - Include clear relationship types
 - Provide concise descriptions
 - Return ONLY the JSON, no markdown or code blocks`
@@ -184,14 +207,108 @@ Rules:
       });
     }
 
-    // Return the generated data
-    res.json({
-      success: true,
-      topic: result.topic || inputText,
-      description: result.description || '',
-      edges: result.edges || [],
-      concepts: result.concepts || []
-    });
+    // Save to database
+    await db.connect();
+    
+    try {
+      const savedNodes = [];
+      const savedEdges = [];
+      
+      // Create or get the main topic node
+      const topicName = result.topic || inputText;
+      let topicNode = await db.getNodeByName(topicName);
+      if (!topicNode) {
+        topicNode = await db.createNode(topicName, 'concept', result.description || '');
+        savedNodes.push(topicNode);
+      } else {
+        // Update description if it exists and node doesn't have one
+        if (result.description && !topicNode.description) {
+          // Note: We'd need an updateNode method for this, but for now we'll just use existing node
+        }
+      }
+      
+      // Only create edges from the topic node to existing nodes
+      const conceptMap = new Map(); // name -> node
+      conceptMap.set(topicName, topicNode);
+      
+      // Create edges - only connect to existing nodes in database
+      if (result.edges && result.edges.length > 0) {
+        // Collect all unique node names from edges (targets only)
+        const targetNodeNames = new Set();
+        for (const edge of result.edges) {
+          // Only process edges where source is the topic
+          if (edge.source === topicName || edge.source === result.topic) {
+            targetNodeNames.add(edge.target);
+          }
+        }
+        
+        // Check database for target nodes - only use existing nodes
+        for (const nodeName of targetNodeNames) {
+          let existingNode = await db.getNodeByName(nodeName);
+          if (existingNode) {
+            conceptMap.set(nodeName, existingNode);
+          }
+          // Skip if node doesn't exist - we only connect to existing nodes
+        }
+        
+        // Now create edges - only from topic to existing nodes
+        for (const edge of result.edges) {
+          // Only create edges where source is the topic and target exists
+          const isTopicSource = edge.source === topicName || edge.source === result.topic;
+          const srcNode = isTopicSource ? topicNode : conceptMap.get(edge.source);
+          const dstNode = conceptMap.get(edge.target);
+          
+          // Only create edge if source is topic and target exists in database
+          if (isTopicSource && srcNode && dstNode) {
+            // Check if edge already exists (check both directions since graph is undirected)
+            const existingEdges = await db.getEdgesByNodeId(srcNode.id);
+            const edgeExists = existingEdges.some(e => 
+              (e.src_id === srcNode.id && e.dst_id === dstNode.id) ||
+              (e.src_id === dstNode.id && e.dst_id === srcNode.id)
+            );
+            
+            if (!edgeExists) {
+              const newEdge = await db.createEdge(
+                srcNode.id,
+                edge.relation,
+                dstNode.id,
+                edge.description || null
+              );
+              savedEdges.push(newEdge);
+            }
+          }
+        }
+      }
+      
+      await db.close();
+      
+      // Return the generated and saved data
+      res.json({
+        success: true,
+        topic: topicName,
+        description: result.description || '',
+        edges: result.edges || [],
+        concepts: result.concepts || [],
+        saved: {
+          nodes: savedNodes.length,
+          edges: savedEdges.length
+        },
+        message: `Added ${savedNodes.length} new nodes and ${savedEdges.length} new edges to the graph`
+      });
+      
+    } catch (dbError) {
+      await db.close();
+      console.error('Error saving to database:', dbError);
+      // Still return the generated data even if saving fails
+      res.json({
+        success: true,
+        topic: result.topic || inputText,
+        description: result.description || '',
+        edges: result.edges || [],
+        concepts: result.concepts || [],
+        warning: 'Generated successfully but failed to save to database'
+      });
+    }
 
   } catch (error) {
     console.error('Error generating topic:', error);
