@@ -6,13 +6,16 @@
   "scripts": {
     "setup-db": "node scripts/setup-db.js",
     "seed-data": "node scripts/seed-data.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "keywords": ["claude", "pdf", "knowledge-graph"],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.6",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   }
 }
 
