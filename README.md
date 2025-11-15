@@ -2,16 +2,6 @@
 
 An interactive web application that transforms documents into visual knowledge graphs. Extract concepts and relationships from text using AI (Ollama), store them in SQLite, and visualize them with an interactive force-directed graph.
 
-## Features
-
-- **Interactive Graph Visualization**: Force-directed graph layout showing concepts (nodes) and relationships (edges)
-- **AI-Powered Topic Generation**: Use Ollama to generate knowledge graphs from topic descriptions
-- **Node Descriptions**: Rich descriptions for each concept displayed on click
-- **Centrality Visualization**: Node size reflects connection count (more connected = larger nodes)
-- **Color-Coded Nodes**: Different colors for different node types (concept, algorithm, architecture, field)
-- **SQLite Database**: Persistent storage of nodes and edges
-- **RESTful API**: Clean API endpoints for graph data
-
 ## Quick Start
 
 ### Prerequisites
@@ -69,7 +59,7 @@ To enable AI-powered topic generation:
    OLLAMA_MODEL=llama2:7b
    ```
 
-## 📊 Database Schema
+## Database Schema
 
 ### Nodes Table
 - `id` (INTEGER, PRIMARY KEY) - Unique identifier
@@ -160,7 +150,7 @@ Generates nodes and edges for a topic using Ollama.
 #### `GET /api/health`
 Health check endpoint.
 
-## 🛠️ Project Structure
+## Project Structure
 
 ```
 CMU-Claude-Builder/
@@ -177,7 +167,7 @@ CMU-Claude-Builder/
 └── README.md
 ```
 
-## 💻 Development
+## Development
 
 ### Available Scripts
 
@@ -210,7 +200,7 @@ await db.clearAll();
 await db.close();
 ```
 
-## 🎯 Features Explained
+## Features Explained
 
 ### Force-Directed Graph
 - Nodes are positioned using a physics simulation
@@ -228,7 +218,7 @@ Node size is calculated based on the number of connections:
 - More connections = larger node
 - Helps identify key concepts in the knowledge graph
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -240,22 +230,6 @@ OLLAMA_URL=http://localhost:11434
 OLLAMA_MODEL=llama2:7b
 ```
 
-## 📝 License
+## License
 
 MIT
-
-## 🤝 Contributing
-
-Contributions welcome! Feel free to submit issues or pull requests.
-
-## 📚 Technologies Used
-
-- **Backend**: Node.js, Express.js
-- **Database**: SQLite3
-- **Frontend**: Vanilla JavaScript, Force-Graph library
-- **AI**: Ollama (for topic generation)
-- **Visualization**: D3.js (via force-graph)
-
----
-
-Built with ❤️ for exploring knowledge through interactive graphs.
