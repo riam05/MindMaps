@@ -192,17 +192,41 @@ Rules:
     const ollamaData = await ollamaResponse.json();
     const content = ollamaData.message?.content || ollamaData.response || ollamaData.text || '';
 
-    // Parse JSON from response
+    // Parse JSON from response (handle various formats)
     let result;
     try {
-      // Try to extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-      const jsonString = jsonMatch ? jsonMatch[1] : content.trim();
+      let jsonString = content.trim();
+      
+      // Try to extract JSON from markdown code blocks first
+      const codeBlockMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (codeBlockMatch) {
+        jsonString = codeBlockMatch[1];
+      } else {
+        // Try to find JSON object in the text (look for first { and last })
+        const firstBrace = jsonString.indexOf('{');
+        const lastBrace = jsonString.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+        }
+      }
+      
       result = JSON.parse(jsonString);
+      
+      // Replace "Topic Name" placeholder with actual topic name
+      if (result.edges) {
+        result.edges.forEach(edge => {
+          if (edge.source === 'Topic Name' || edge.source === 'topic') {
+            edge.source = result.topic || inputText;
+          }
+        });
+      }
+      
     } catch (parseError) {
-      console.error('Failed to parse Ollama response:', content);
+      console.error('Failed to parse Ollama response:', parseError.message);
+      console.error('Response content:', content.substring(0, 1000));
       return res.status(500).json({ 
         error: 'Failed to parse response from Ollama',
+        details: parseError.message,
         raw_response: content.substring(0, 500)
       });
     }
