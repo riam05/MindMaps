@@ -1,8 +1,8 @@
-# ⭐ Claude-Powered PDF → Knowledge Graph Builder
+# PDF → Knowledge Graph Builder
 
 An interactive web application that transforms documents into visual knowledge graphs. Extract concepts and relationships from text using AI (Ollama), store them in SQLite, and visualize them with an interactive force-directed graph.
 
-## 🎯 Features
+## Features
 
 - **Interactive Graph Visualization**: Force-directed graph layout showing concepts (nodes) and relationships (edges)
 - **AI-Powered Topic Generation**: Use Ollama to generate knowledge graphs from topic descriptions
@@ -12,7 +12,7 @@ An interactive web application that transforms documents into visual knowledge g
 - **SQLite Database**: Persistent storage of nodes and edges
 - **RESTful API**: Clean API endpoints for graph data
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -84,7 +84,7 @@ To enable AI-powered topic generation:
 - `dst_id` (INTEGER, NOT NULL) - Destination node ID (foreign key)
 - `evidence` (TEXT) - Optional evidence/context supporting the relationship
 
-## 🎨 Usage
+## Usage
 
 ### Visualizing the Graph
 
